@@ -21,7 +21,7 @@ namespace GitLabToGitHub
 
             var gitLabClient = new GitLabClient(gitLabSettings.Url, gitLabSettings.AccessToken);
             var migration = new Migration(gitLabClient);
-            await migration.Start();
+            await migration.MigrateOneProject();
         }
     }
 }
