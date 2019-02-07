@@ -19,12 +19,20 @@ namespace GitLabToGitHub
 
         public async Task MigrateOneProject()
         {
-            var availableGitLabGroups = await _gitLabClient.Groups.GetAsync();
-            var sourceGitLabGroup = SelectGitLabGroup(availableGitLabGroups);
-            var availableProjectsInSelectedGroup = await _gitLabClient.Groups.GetProjectsAsync(sourceGitLabGroup.Id.ToString());
-            var sourceProject = SelectGitLabProject(availableProjectsInSelectedGroup);
+            try
+            {
+                var availableGitLabGroups = await _gitLabClient.Groups.GetAsync();
+                var sourceGitLabGroup = SelectGitLabGroup(availableGitLabGroups);
+                var availableProjectsInSelectedGroup = await _gitLabClient.Groups.GetProjectsAsync(sourceGitLabGroup.Id.ToString());
+                var sourceProject = SelectGitLabProject(availableProjectsInSelectedGroup);
 
-            Console.WriteLine($"Migrate >{sourceProject.NameWithNamespace}< from GitLab to GitHub...");
+                Console.WriteLine($"Migrate >{sourceProject.NameWithNamespace}< from GitLab to GitHub...");
+            }
+            catch (GitLabException e)
+            {
+                Console.WriteLine($"There is a problem to reach your GitLab Server. {e.Message}");
+                Console.WriteLine("Please check your GitLab Settings.");
+            }
         }
 
         private Group SelectGitLabGroup(IList<Group> gitLabGroups)
