@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using GitLabApiClient;
 using Microsoft.Extensions.Configuration;
+using Octokit;
 
 namespace GitLabToGitHub
 {
@@ -18,9 +19,14 @@ namespace GitLabToGitHub
 
             var gitLabSettings = new GitLabSettings();
             config.GetSection("GitLab").Bind(gitLabSettings);
-
             var gitLabClient = new GitLabClient(gitLabSettings.Url, gitLabSettings.AccessToken);
-            var migration = new Migration(gitLabClient);
+
+            var gitHubSettings = new GitHubSettings();
+            config.GetSection("GitHub").Bind(gitHubSettings);
+            var gitHubClient = new GitHubClient(new ProductHeaderValue("GitLabToGitHub"));
+            gitHubClient.Credentials = new Credentials(gitHubSettings.AccessToken);
+
+            var migration = new Migration(gitLabClient, gitHubClient);
             await migration.MigrateOneProject();
         }
     }

@@ -1,32 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using GitLabApiClient;
-using GitLabApiClient.Models.Groups.Responses;
-using GitLabApiClient.Models.Projects.Responses;
+using Octokit;
+using Group = GitLabApiClient.Models.Groups.Responses.Group;
+using Project = GitLabApiClient.Models.Projects.Responses.Project;
 
 namespace GitLabToGitHub
 {
     internal class Migration
     {
         private readonly GitLabClient _gitLabClient;
+        private readonly GitHubClient _gitHubClient;
 
-        public Migration(GitLabClient gitLabClient)
+        public Migration(GitLabClient gitLabClient, GitHubClient gitHubClient)
         {
             _gitLabClient = gitLabClient;
+            _gitHubClient = gitHubClient;
         }
 
         public async Task MigrateOneProject()
         {
             try
             {
-                var availableGitLabGroups = await _gitLabClient.Groups.GetAsync();
-                var sourceGitLabGroup = SelectGitLabGroup(availableGitLabGroups);
-                var availableProjectsInSelectedGroup = await _gitLabClient.Groups.GetProjectsAsync(sourceGitLabGroup.Id.ToString());
-                var sourceProject = SelectGitLabProject(availableProjectsInSelectedGroup);
+                var availableSourceGroups = await _gitLabClient.Groups.GetAsync();
+                var sourceGroup = SelectGitLabGroup(availableSourceGroups);
+                var availableProjectsInSourceGroup = await _gitLabClient.Groups.GetProjectsAsync(sourceGroup.Id.ToString());
+                var sourceProject = SelectGitLabProject(availableProjectsInSourceGroup);
+                var targetRepository = SelectNewGitHubRepository(sourceGroup.Name, sourceProject.Name);
 
-                Console.WriteLine($"Migrate >{sourceProject.NameWithNamespace}< from GitLab to GitHub...");
+                if (!SelectStartMigration(sourceProject, targetRepository))
+                {
+                    return;
+                }
+
+                Console.WriteLine("Start Migration...");
+
             }
             catch (GitLabException e)
             {
@@ -87,6 +98,43 @@ namespace GitLabToGitHub
             }
 
             return selectedProject;
+        }
+
+        private NewRepository SelectNewGitHubRepository(string sourceGroupName, string sourceProjectName)
+        {
+            sourceGroupName = Regex.Replace(sourceGroupName, @"\s+", string.Empty);
+            sourceProjectName = Regex.Replace(sourceProjectName, @"\s+", string.Empty);
+            var repositoryName = $"{sourceGroupName}_{sourceProjectName}";
+
+            Console.WriteLine($"New GitHub Repository name [{repositoryName}]: ");
+            var userInput = Console.ReadLine();
+            repositoryName = string.IsNullOrEmpty(userInput) ? repositoryName : userInput;
+            var newRepository = new NewRepository(repositoryName);
+
+            Console.WriteLine($"Should Repository {repositoryName} be Private or Public [R/u]?");
+            var allowedKeys = new[] { ConsoleKey.R, ConsoleKey.U, ConsoleKey.Enter };
+            ConsoleKeyInfo userInputKeyInfo;
+            do
+            {
+                userInputKeyInfo = Console.ReadKey(false);
+            } while (!allowedKeys.Contains(userInputKeyInfo.Key));
+            newRepository.Private = userInputKeyInfo.Key != ConsoleKey.U;
+
+            return newRepository;
+        }
+
+        private bool SelectStartMigration(Project sourceProject, NewRepository targetRepository)
+        {
+            var privatePublic = targetRepository.Private == true ? "private" : "public";
+            Console.WriteLine($"Migrate >{sourceProject.NameWithNamespace}< from GitLab to new {privatePublic} Project {targetRepository.Name} on GitHub? [Y/n]");
+            var allowedKeys = new[] {ConsoleKey.Y, ConsoleKey.N};
+            ConsoleKeyInfo userInputKeyInfo;
+            do
+            {
+                userInputKeyInfo = Console.ReadKey(false);
+            } while (!allowedKeys.Contains(userInputKeyInfo.Key));
+
+            return userInputKeyInfo.Key == ConsoleKey.Y;
         }
     }
 }
