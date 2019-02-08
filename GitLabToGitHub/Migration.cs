@@ -1,6 +1,8 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using LibGit2Sharp;
 
 namespace GitLabToGitHub
 {
@@ -18,12 +20,15 @@ namespace GitLabToGitHub
         public async Task MigrateOneProject()
         {
             var sourceProject = await _gitLabConnector.GetSourceProject();
-            var targetRepository = _gitHubConnector.GetNewRepository(sourceProject.Namespace.Name, sourceProject.Name);
+            var targetNewRepository = _gitHubConnector.GetNewRepository(sourceProject.Namespace.Name, sourceProject.Name);
 
-            if (!SelectStartMigration(sourceProject.NameWithNamespace, targetRepository.Name, targetRepository.Private ?? false))
+            if (!SelectStartMigration(sourceProject.NameWithNamespace, targetNewRepository.Name, targetNewRepository.Private ?? false))
             {
                 return;
             }
+
+            var gitPath = Path.Combine(Directory.GetCurrentDirectory(), "GitLab");
+            var gitRepoPath = _gitLabConnector.CloneProjectRepository(sourceProject, gitPath);
 
             Console.WriteLine("Start Migration...");
         }

@@ -1,19 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Security;
 using System.Threading.Tasks;
 using GitLabApiClient;
 using GitLabApiClient.Models.Groups.Responses;
 using GitLabApiClient.Models.Projects.Responses;
+using LibGit2Sharp;
 
 namespace GitLabToGitHub
 {
     internal class GitLabConnector
     {
+        private readonly GitLabSettings _gitLabSettings;
         private readonly GitLabClient _gitLabClient;
 
         public GitLabConnector(GitLabSettings gitLabSettings)
         {
+            _gitLabSettings = gitLabSettings;
             _gitLabClient = new GitLabClient(gitLabSettings.Url, gitLabSettings.AccessToken);
         }
 
@@ -88,6 +93,33 @@ namespace GitLabToGitHub
             }
 
             return selectedProject;
+        }
+
+        public string CloneProjectRepository(Project sourceProject, string gitRepoPath)
+        {
+            gitRepoPath = Path.Combine(gitRepoPath, sourceProject.Path);
+            Console.Write($"Clone Git Repository to >{gitRepoPath}<... ");
+
+            using (var repo = new Repository(Repository.Init(gitRepoPath, true)))
+            {
+                var remote = repo.Network.Remotes.Add("gitlab", sourceProject.HttpUrlToRepo, "+refs/*:refs/*");
+                repo.Config.Set("remote.gitlab.mirror", true);
+
+                var fetchOptions = new FetchOptions
+                {
+                    CredentialsProvider = (url, fromUrl, types) => new UsernamePasswordCredentials
+                    {
+                        Username = _gitLabSettings.AccessToken,
+                        Password = _gitLabSettings.AccessToken
+                    }
+                };
+
+                var logMessage = string.Empty;
+                Commands.Fetch(repo, "gitlab", new List<string>(), fetchOptions, logMessage);
+            }
+
+            Console.WriteLine("Done.");
+            return gitRepoPath;
         }
     }
 }
