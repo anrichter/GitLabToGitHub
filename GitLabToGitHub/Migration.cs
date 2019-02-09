@@ -31,18 +31,21 @@ namespace GitLabToGitHub
             var gitPath = Path.Combine(Directory.GetCurrentDirectory(), "GitClones");
             var gitRepoPath = _gitLabConnector.CloneProjectRepository(sourceProject, gitPath);
             _gitHubConnector.PushGitRepo(targetRepository, gitRepoPath);
+
+            Console.WriteLine($"Migration of GitLab project >{sourceProject.NameWithNamespace}< to GitHub repository >{targetRepository.FullName}< finished.");
         }
 
         private bool SelectStartMigration(string sourceProjectName, string targetRepositoryName, bool targetPrivate)
         {
             var privatePublic = targetPrivate ? "private" : "public";
-            Console.WriteLine($"Migrate >{sourceProjectName}< from GitLab to new {privatePublic} Project >{targetRepositoryName}< on GitHub? [Y/n]");
+            Console.Write($"Migrate >{sourceProjectName}< from GitLab to new {privatePublic} Project >{targetRepositoryName}< on GitHub? [Y/n]");
             var allowedKeys = new[] {ConsoleKey.Y, ConsoleKey.N};
             ConsoleKeyInfo userInputKeyInfo;
             do
             {
                 userInputKeyInfo = Console.ReadKey(false);
             } while (!allowedKeys.Contains(userInputKeyInfo.Key));
+            Console.WriteLine(string.Empty);
 
             return userInputKeyInfo.Key == ConsoleKey.Y;
         }

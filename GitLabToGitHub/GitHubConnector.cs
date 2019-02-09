@@ -57,7 +57,7 @@ namespace GitLabToGitHub
 
         public void PushGitRepo(Repository gitHubRepository, string gitRepoPath)
         {
-            Console.Write($"Push Git Repository to GitHub Repository >{gitHubRepository.FullName}<... ");
+            Console.Write($"Git: Push >{gitRepoPath}< to repository >{gitHubRepository.FullName}<... ");
 
             using (var repo = new LibGit2Sharp.Repository(gitRepoPath))
             {

@@ -98,7 +98,7 @@ namespace GitLabToGitHub
         public string CloneProjectRepository(Project sourceProject, string gitRepoPath)
         {
             gitRepoPath = Path.Combine(gitRepoPath, sourceProject.Path);
-            Console.Write($"Clone Git Repository to >{gitRepoPath}<... ");
+            Console.Write($"Git: Cloning {sourceProject.NameWithNamespace} into bare repository >{gitRepoPath}<... ");
 
             using (var repo = new Repository(Repository.Init(gitRepoPath, true)))
             {
