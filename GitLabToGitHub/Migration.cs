@@ -2,7 +2,6 @@
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using LibGit2Sharp;
 
 namespace GitLabToGitHub
 {
@@ -27,10 +26,11 @@ namespace GitLabToGitHub
                 return;
             }
 
-            var gitPath = Path.Combine(Directory.GetCurrentDirectory(), "GitLab");
-            var gitRepoPath = _gitLabConnector.CloneProjectRepository(sourceProject, gitPath);
+            var targetRepository = await _gitHubConnector.CreateRepository(targetNewRepository);
 
-            Console.WriteLine("Start Migration...");
+            var gitPath = Path.Combine(Directory.GetCurrentDirectory(), "GitClones");
+            var gitRepoPath = _gitLabConnector.CloneProjectRepository(sourceProject, gitPath);
+            _gitHubConnector.PushGitRepo(targetRepository, gitRepoPath);
         }
 
         private bool SelectStartMigration(string sourceProjectName, string targetRepositoryName, bool targetPrivate)
