@@ -18,6 +18,8 @@ namespace GitLabToGitHub
 
         public async Task MigrateOneProject()
         {
+            Console.WriteLine("Migrate a GitLab project to a new GitHub repository.");
+
             var sourceProject = await _gitLabConnector.GetSourceProject();
             var targetNewRepository = _gitHubConnector.GetNewRepository(sourceProject.Namespace.Name, sourceProject.Name);
 
@@ -26,23 +28,27 @@ namespace GitLabToGitHub
                 return;
             }
 
+            Console.Write("Create new GitHub Repository... ");
             var targetRepository = await _gitHubConnector.CreateRepository(targetNewRepository);
+            Console.WriteLine("Done.");
 
+            Console.Write("Migrate Git Repository... ");
             var gitPath = Path.Combine(Directory.GetCurrentDirectory(), "GitClones");
             var gitRepoPath = _gitLabConnector.CloneProjectRepository(sourceProject, gitPath);
             _gitHubConnector.PushGitRepo(targetRepository, gitRepoPath);
+            Console.WriteLine("Done.");
 
             Console.Write("Migrate Milestones... ");
             var milestones = await _gitLabConnector.GetMilestones(sourceProject);
-            Console.Write($"{milestones.Count} Milestones ");
+            Console.Write($"\rMigrate {milestones.Count} Milestones... ");
             milestones = await _gitHubConnector.CreateMilestones(targetRepository, milestones);
-            Console.WriteLine("migrated.");
+            Console.WriteLine("Done.");
 
             Console.Write("Migrate Issues... ");
             var issues = await _gitLabConnector.GetIssues(sourceProject);
-            Console.Write($"{issues.Count} Issues ");
+            Console.Write($"\rMigrate {issues.Count} Issues... ");
             await _gitHubConnector.CreateIssues(targetRepository, issues, milestones);
-            Console.WriteLine("migrated");
+            Console.WriteLine("Done.");
 
             Console.WriteLine("Migration finshed.");
             Console.WriteLine($"GitLab: {sourceProject.WebUrl}");

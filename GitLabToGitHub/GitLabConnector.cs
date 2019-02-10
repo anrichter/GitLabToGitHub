@@ -40,70 +40,71 @@ namespace GitLabToGitHub
                 Environment.Exit(1);
                 throw;
             }
+
+            Group SelectGitLabGroup(IList<Group> gitLabGroups)
+            {
+                Console.WriteLine("Select Source GitLab Group:");
+                Console.WriteLine("Id\tName");
+                foreach (var gitLabGroup in gitLabGroups)
+                {
+                    Console.WriteLine($"{gitLabGroup.Id}\t{gitLabGroup.Name}");
+                }
+
+                Console.WriteLine("Group Id: ");
+                var userInput = Console.ReadLine();
+                if (!int.TryParse(userInput, out int selectedGroupId))
+                {
+                    Console.WriteLine("Please insert a valid Group Id.");
+                    Environment.Exit(1);
+                }
+
+                var selectedGroup = gitLabGroups.FirstOrDefault(g => g.Id == selectedGroupId);
+                if (selectedGroup == null)
+                {
+                    Console.WriteLine("Please insert a valid Group Id.");
+                    Environment.Exit(1);
+                }
+
+                return selectedGroup;
+            }
+
+            Project SelectGitLabProject(IList<Project> gitLabProjects)
+            {
+                Console.WriteLine("Select Source GitLab Project:");
+                Console.WriteLine("Id\tName");
+                foreach (var gitLabProject in gitLabProjects)
+                {
+                    Console.WriteLine($"{gitLabProject.Id}\t{gitLabProject.Name}");
+                }
+
+                Console.WriteLine("Project Id:");
+                var userInput = Console.ReadLine();
+                if (!int.TryParse(userInput, out int selectedProjectId))
+                {
+                    Console.WriteLine("Please insert a valid Project Id.");
+                    Environment.Exit(1);
+                }
+
+                var selectedProject = gitLabProjects.FirstOrDefault(p => p.Id == selectedProjectId);
+                if (selectedProject == null)
+                {
+                    Console.WriteLine("Please insert a valid Project Id.");
+                    Environment.Exit(1);
+                }
+
+                return selectedProject;
+            }
         }
 
-        private Group SelectGitLabGroup(IList<Group> gitLabGroups)
+        public string CloneProjectRepository(Project project, string gitRepoPath)
         {
-            Console.WriteLine("Select Source GitLab Group:");
-            Console.WriteLine("ID\tName");
-            foreach (var gitLabGroup in gitLabGroups)
-            {
-                Console.WriteLine($"{gitLabGroup.Id}\t{gitLabGroup.Name}");
-            }
-
-            Console.WriteLine("Select a Group: ");
-            var userInput = Console.ReadLine();
-            if (!int.TryParse(userInput, out int selectedGroupId))
-            {
-                Console.WriteLine("Please insert an correct Id");
-                return SelectGitLabGroup(gitLabGroups);
-            }
-
-            var selectedGroup = gitLabGroups.FirstOrDefault(g => g.Id == selectedGroupId);
-            if (selectedGroup == null)
-            {
-                Console.WriteLine("Please insert a valid Group Id");
-                return SelectGitLabGroup(gitLabGroups);
-            }
-
-            return selectedGroup;
-        }
-
-        private Project SelectGitLabProject(IList<Project> gitLabProjects)
-        {
-            Console.WriteLine("Select Source GitLab Project:");
-            Console.WriteLine("ID\tName");
-            foreach (var gitLabProject in gitLabProjects)
-            {
-                Console.WriteLine($"{gitLabProject.Id}\t{gitLabProject.Name}");
-            }
-
-            Console.WriteLine("Select a Project:");
-            var userInput = Console.ReadLine();
-            if (!int.TryParse(userInput, out int selectedProjectId))
-            {
-                Console.WriteLine("Please insert an correct Id");
-                return SelectGitLabProject(gitLabProjects);
-            }
-
-            var selectedProject = gitLabProjects.FirstOrDefault(p => p.Id == selectedProjectId);
-            if (selectedProject == null)
-            {
-                Console.WriteLine("Please insert a valid Project Id");
-                return SelectGitLabProject(gitLabProjects);
-            }
-
-            return selectedProject;
-        }
-
-        public string CloneProjectRepository(Project sourceProject, string gitRepoPath)
-        {
-            gitRepoPath = Path.Combine(gitRepoPath, sourceProject.Path);
-            Console.Write($"Git: Cloning {sourceProject.NameWithNamespace} into bare repository >{gitRepoPath}<... ");
-
+            gitRepoPath = Path.Combine(gitRepoPath, project.Path);
             using (var repo = new Repository(Repository.Init(gitRepoPath, true)))
             {
-                var remote = repo.Network.Remotes.Add("gitlab", sourceProject.HttpUrlToRepo, "+refs/*:refs/*");
+                if (repo.Network.Remotes.Any(r => r.Name == "gitlab"))
+                    repo.Network.Remotes.Remove("gitlab");
+
+                var remote = repo.Network.Remotes.Add("gitlab", project.HttpUrlToRepo, "+refs/*:refs/*");
                 repo.Config.Set("remote.gitlab.mirror", true);
 
                 var fetchOptions = new FetchOptions
@@ -119,7 +120,6 @@ namespace GitLabToGitHub
                 Commands.Fetch(repo, "gitlab", new List<string>(), fetchOptions, logMessage);
             }
 
-            Console.WriteLine("Done.");
             return gitRepoPath;
         }
 

@@ -50,18 +50,16 @@ namespace GitLabToGitHub
 
         public async Task<Repository> CreateRepository(NewRepository newRepository)
         {
-            Console.Write("Create GitHub Repository... ");
-            var repository = await _gitHubClient.Repository.Create(newRepository);
-            Console.WriteLine("Done.");
-            return repository;
+            return await _gitHubClient.Repository.Create(newRepository);
         }
 
         public void PushGitRepo(Repository gitHubRepository, string gitRepoPath)
         {
-            Console.Write($"Git: Push >{gitRepoPath}< to repository >{gitHubRepository.FullName}<... ");
-
             using (var repo = new LibGit2Sharp.Repository(gitRepoPath))
             {
+                if (repo.Network.Remotes.Any(r => r.Name == "github"))
+                    repo.Network.Remotes.Remove("github");
+
                 var remote = repo.Network.Remotes.Add("github", gitHubRepository.CloneUrl, "+refs/*:refs/*");
                 repo.Config.Set("remote.github.mirror", true);
 
@@ -78,7 +76,6 @@ namespace GitLabToGitHub
                 var refs = repo.Refs.Select(r => r.CanonicalName);
                 repo.Network.Push(remote, refs, pushOptions);
             }
-            Console.WriteLine("Done.");
         }
 
         public async Task<ICollection<TransferObjects.Milestone>> CreateMilestones(Repository repository, ICollection<TransferObjects.Milestone> milestones)
