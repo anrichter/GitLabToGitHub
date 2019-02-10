@@ -38,6 +38,12 @@ namespace GitLabToGitHub
             _gitHubConnector.PushGitRepo(targetRepository, gitRepoPath);
             Console.WriteLine("Done.");
 
+            Console.Write("Migrate Users... ");
+            var users = await _gitLabConnector.GetUsernames(sourceProject);
+            Console.Write($"\rMigrate {users.Count} Users... ");
+            await _gitHubConnector.CreateCollaborators(targetRepository, users);
+            Console.WriteLine("Done.");
+
             Console.Write("Migrate Milestones... ");
             var milestones = await _gitLabConnector.GetMilestones(sourceProject);
             Console.Write($"\rMigrate {milestones.Count} Milestones... ");

@@ -8,6 +8,7 @@ using GitLabApiClient.Models.Groups.Responses;
 using GitLabApiClient.Models.Issues.Responses;
 using GitLabApiClient.Models.Milestones.Responses;
 using GitLabApiClient.Models.Projects.Responses;
+using GitLabToGitHub.Settings;
 using LibGit2Sharp;
 
 namespace GitLabToGitHub
@@ -121,6 +122,12 @@ namespace GitLabToGitHub
             }
 
             return gitRepoPath;
+        }
+
+        public async Task<ICollection<string>> GetUsernames(Project project)
+        {
+            var users = await _gitLabClient.Projects.GetUsersAsync(project.Id);
+            return users.Select(u => u.Username).ToList();
         }
 
         public async Task<ICollection<TransferObjects.Milestone>> GetMilestones(Project project)

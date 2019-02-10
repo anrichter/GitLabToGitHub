@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using GitLabToGitHub.Settings;
 using LibGit2Sharp;
 using Octokit;
 using Credentials = Octokit.Credentials;
@@ -13,11 +14,13 @@ namespace GitLabToGitHub
     internal class GitHubConnector
     {
         private readonly GitHubSettings _gitHubSettings;
+        private readonly UserMapper _userMapper;
         private readonly GitHubClient _gitHubClient;
 
-        public GitHubConnector(GitHubSettings gitHubSettings)
+        public GitHubConnector(GitHubSettings gitHubSettings, UserMapper userMapper)
         {
             _gitHubSettings = gitHubSettings;
+            _userMapper = userMapper;
             _gitHubClient = new GitHubClient(new ProductHeaderValue("GitLabToGitHub"))
             {
                 Credentials = new Credentials(gitHubSettings.AccessToken)
@@ -78,6 +81,20 @@ namespace GitLabToGitHub
             }
         }
 
+        public async Task CreateCollaborators(Repository repository, ICollection<string> usernames)
+        {
+            var existingCollaborators = await _gitHubClient.Repository.Collaborator.GetAll(repository.Id);
+            var existingCollaboratorUsernames = existingCollaborators.Select(c => c.Login).ToList();
+
+            var neededCollaboratorUsernames = usernames.Select(user => _userMapper.MapToGitHubUserName(user)).ToList();
+            var newCollaboratorUsernames = neededCollaboratorUsernames.Except(existingCollaboratorUsernames);
+            
+            foreach (var newCollaboratorUsername in newCollaboratorUsernames)
+            {
+                await _gitHubClient.Repository.Collaborator.Add(repository.Id, newCollaboratorUsername);
+            }
+        }
+
         public async Task<ICollection<TransferObjects.Milestone>> CreateMilestones(Repository repository, ICollection<TransferObjects.Milestone> milestones)
         {
             var sortedMilestones = milestones.OrderBy(m => m.SourceId);
@@ -100,11 +117,14 @@ namespace GitLabToGitHub
             var sortedIssues = issues.OrderBy(i => i.Id);
             foreach (var issue in sortedIssues)
             {
+                var issueAssignees = issue.AssigneeUserNames.Select(name => _userMapper.MapToGitHubUserName(name)).ToList();
+
                 var newIssue = new NewIssue(issue.Title);
-                newIssue.Body = ComposeBody(issue);
-                foreach (var userName in issue.AssigneeUserNames)
+                newIssue.Body = ComposeBody(issue, issueAssignees);
+
+                if (issueAssignees.Contains(repository.Owner.Login))
                 {
-                    newIssue.Assignees.Add(userName);
+                    newIssue.Assignees.Add(repository.Owner.Login);
                 }
                 foreach (var label in issue.Labels)
                 {
@@ -125,16 +145,20 @@ namespace GitLabToGitHub
                 }
             }
 
-            string ComposeBody(TransferObjects.Issue issue)
+            string ComposeBody(TransferObjects.Issue issue, List<string> issueAssignees)
             {
                 var body = issue.Description;
                 body += $"{Environment.NewLine}{Environment.NewLine}";
                 body += $"**Imported from GitLab**{Environment.NewLine}";
-                body += $"Created from {issue.AuthorUserName} on {issue.CreatedAt:u}{Environment.NewLine}";
+                body += $"Created from {_userMapper.MapToGitHubUserName(issue.AuthorUserName)} on {issue.CreatedAt:u}{Environment.NewLine}";
+                if (issueAssignees.Any())
+                {
+                    body += $"Assignees: {string.Join(", ", issueAssignees)}{Environment.NewLine}";
+                }
                 body += $"*Comments:*{Environment.NewLine}";
                 foreach (var comment in issue.Comments.OrderBy(c => c.Id))
                 {
-                    body += $"{Environment.NewLine}*{comment.AuthorUsername} on {comment.CreatedDate:u}*:{Environment.NewLine}{comment.Body}{Environment.NewLine}";
+                    body += $"{Environment.NewLine}*{_userMapper.MapToGitHubUserName(comment.AuthorUsername)} on {comment.CreatedDate:u}*:{Environment.NewLine}{comment.Body}{Environment.NewLine}";
                 }
 
                 return body;

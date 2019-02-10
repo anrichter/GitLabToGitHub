@@ -1,4 +1,4 @@
-﻿namespace GitLabToGitHub
+﻿namespace GitLabToGitHub.Settings
 {
     internal class GitLabSettings
     {
