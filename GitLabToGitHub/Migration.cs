@@ -32,7 +32,21 @@ namespace GitLabToGitHub
             var gitRepoPath = _gitLabConnector.CloneProjectRepository(sourceProject, gitPath);
             _gitHubConnector.PushGitRepo(targetRepository, gitRepoPath);
 
-            Console.WriteLine($"Migration of GitLab project >{sourceProject.NameWithNamespace}< to GitHub repository >{targetRepository.FullName}< finished.");
+            Console.Write("Migrate Milestones... ");
+            var milestones = await _gitLabConnector.GetMilestones(sourceProject);
+            Console.Write($"{milestones.Count} Milestones ");
+            milestones = await _gitHubConnector.CreateMilestones(targetRepository, milestones);
+            Console.WriteLine("migrated.");
+
+            Console.Write("Migrate Issues... ");
+            var issues = await _gitLabConnector.GetIssues(sourceProject);
+            Console.Write($"{issues.Count} Issues ");
+            await _gitHubConnector.CreateIssues(targetRepository, issues, milestones);
+            Console.WriteLine("migrated");
+
+            Console.WriteLine("Migration finshed.");
+            Console.WriteLine($"GitLab: {sourceProject.WebUrl}");
+            Console.WriteLine($"GitHub: {targetRepository.HtmlUrl}");
         }
 
         private bool SelectStartMigration(string sourceProjectName, string targetRepositoryName, bool targetPrivate)

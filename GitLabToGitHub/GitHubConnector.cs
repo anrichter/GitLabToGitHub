@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -78,6 +79,69 @@ namespace GitLabToGitHub
                 repo.Network.Push(remote, refs, pushOptions);
             }
             Console.WriteLine("Done.");
+        }
+
+        public async Task<ICollection<TransferObjects.Milestone>> CreateMilestones(Repository repository, ICollection<TransferObjects.Milestone> milestones)
+        {
+            var sortedMilestones = milestones.OrderBy(m => m.SourceId);
+            foreach (var milestone in sortedMilestones)
+            {
+                var newMilestone = new NewMilestone(milestone.Title)
+                {
+                    Description = milestone.Description,
+                    State = milestone.Closed ? ItemState.Closed : ItemState.Open
+                };
+                var createdMilestone = await _gitHubClient.Issue.Milestone.Create(repository.Id, newMilestone);
+                milestone.TargetId = createdMilestone.Number;
+            }
+
+            return milestones;
+        }
+
+        public async Task CreateIssues(Repository repository, ICollection<TransferObjects.Issue> issues, ICollection<TransferObjects.Milestone> milestones)
+        {
+            var sortedIssues = issues.OrderBy(i => i.Id);
+            foreach (var issue in sortedIssues)
+            {
+                var newIssue = new NewIssue(issue.Title);
+                newIssue.Body = ComposeBody(issue);
+                foreach (var userName in issue.AssigneeUserNames)
+                {
+                    newIssue.Assignees.Add(userName);
+                }
+                foreach (var label in issue.Labels)
+                {
+                    newIssue.Labels.Add(label);
+                }
+                if (issue.MilestoneId.HasValue)
+                {
+                    newIssue.Milestone = milestones.Single(ms => ms.SourceId == issue.MilestoneId.Value)?.TargetId;
+                }
+
+                var createdIssue = await _gitHubClient.Issue.Create(repository.Id, newIssue);
+
+                if (issue.Closed)
+                {
+                    var issueUpdate = createdIssue.ToUpdate();
+                    issueUpdate.State = ItemState.Closed;
+                    await _gitHubClient.Issue.Update(repository.Id, createdIssue.Number, issueUpdate);
+                }
+            }
+
+            string ComposeBody(TransferObjects.Issue issue)
+            {
+                var body = issue.Description;
+                body += $"{Environment.NewLine}{Environment.NewLine}";
+                body += $"**Imported from GitLab**{Environment.NewLine}";
+                body += $"Created from {issue.AuthorUserName} on {issue.CreatedAt:u}{Environment.NewLine}";
+                body += $"*Comments:*{Environment.NewLine}";
+                foreach (var comment in issue.Comments.OrderBy(c => c.Id))
+                {
+                    body += $"{Environment.NewLine}*{comment.AuthorUsername} on {comment.CreatedDate:u}*:{Environment.NewLine}{comment.Body}{Environment.NewLine}";
+                }
+
+                return body;
+            }
         }
     }
 }

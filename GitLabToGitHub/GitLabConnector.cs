@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security;
 using System.Threading.Tasks;
 using GitLabApiClient;
 using GitLabApiClient.Models.Groups.Responses;
+using GitLabApiClient.Models.Issues.Responses;
+using GitLabApiClient.Models.Milestones.Responses;
 using GitLabApiClient.Models.Projects.Responses;
 using LibGit2Sharp;
 
@@ -120,6 +121,56 @@ namespace GitLabToGitHub
 
             Console.WriteLine("Done.");
             return gitRepoPath;
+        }
+
+        public async Task<ICollection<TransferObjects.Milestone>> GetMilestones(Project project)
+        {
+            var gitlabMilestones = await _gitLabClient.Projects.GetMilestonesAsync(project.Id, o => o.State = MilestoneState.All);
+            return gitlabMilestones.Select(gms => new TransferObjects.Milestone
+            {
+                SourceId = gms.Id,
+                Title = gms.Title,
+                Description = gms.Description,
+                Closed = gms.State == MilestoneState.Closed
+            }).ToList();
+        }
+
+        public async Task<ICollection<TransferObjects.Issue>> GetIssues(Project project)
+        {
+            var issues = new List<TransferObjects.Issue>();
+
+            var gitlabIssues = await _gitLabClient.Issues.GetAsync(project.Id.ToString(), o => o.State = IssueState.All);
+            foreach (var gitlabIssue in gitlabIssues)
+            {
+                var issue = new TransferObjects.Issue
+                {
+                    Id = gitlabIssue.Id,
+                    Title = gitlabIssue.Title,
+                    Description = gitlabIssue.Description,
+                    AuthorUserName = gitlabIssue.Author.Username,
+                    CreatedAt = gitlabIssue.CreatedAt,
+                    MilestoneId = gitlabIssue.Milestone?.Id,
+                    Closed = gitlabIssue.State == IssueState.Closed,
+                };
+                gitlabIssue.Labels.ForEach(issue.Labels.Add);
+                gitlabIssue.Assignees.ForEach(a => issue.AssigneeUserNames.Add(a.Username));
+
+                var issueNotes = await _gitLabClient.Issues.GetNotesAsync(project.Id, gitlabIssue.Iid);
+                foreach (var issueNote in issueNotes)
+                {
+                    issue.Comments.Add(new TransferObjects.Comment
+                    {
+                        Id = issueNote.Id,
+                        CreatedDate = issueNote.CreatedAt,
+                        AuthorUsername = issueNote.Author.Username,
+                        Body = issueNote.Body
+                    });
+                }
+
+                issues.Add(issue);
+            }
+
+            return issues;
         }
     }
 }
