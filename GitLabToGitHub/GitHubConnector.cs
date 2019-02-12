@@ -112,8 +112,9 @@ namespace GitLabToGitHub
             return milestones;
         }
 
-        public async Task CreateIssues(Repository repository, ICollection<TransferObjects.Issue> issues, ICollection<TransferObjects.Milestone> milestones)
+        public async Task<List<string>> CreateIssues(Repository repository, ICollection<TransferObjects.Issue> issues, ICollection<TransferObjects.Milestone> milestones)
         {
+            var logMessages = new List<string>();
             var sortedIssues = issues.OrderBy(i => i.Id);
             foreach (var issue in sortedIssues)
             {
@@ -125,6 +126,7 @@ namespace GitLabToGitHub
                 if (issueAssignees.Contains(repository.Owner.Login))
                 {
                     newIssue.Assignees.Add(repository.Owner.Login);
+                    issueAssignees.Remove(repository.Owner.Login);
                 }
                 foreach (var label in issue.Labels)
                 {
@@ -143,7 +145,11 @@ namespace GitLabToGitHub
                     issueUpdate.State = ItemState.Closed;
                     await _gitHubClient.Issue.Update(repository.Id, createdIssue.Number, issueUpdate);
                 }
+
+                issueAssignees.ForEach(username => logMessages.Add($"User >{username}< not automatically assigned to Issue >{createdIssue.HtmlUrl}<"));
             }
+
+            return logMessages;
 
             string ComposeBody(TransferObjects.Issue issue, List<string> issueAssignees)
             {

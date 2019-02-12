@@ -53,8 +53,13 @@ namespace GitLabToGitHub
             Console.Write("Migrate Issues... ");
             var issues = await _gitLabConnector.GetIssues(sourceProject);
             Console.Write($"\rMigrate {issues.Count} Issues... ");
-            await _gitHubConnector.CreateIssues(targetRepository, issues, milestones);
+            var logMessages = await _gitHubConnector.CreateIssues(targetRepository, issues, milestones);
             Console.WriteLine("Done.");
+
+            Console.WriteLine($"{Environment.NewLine}Log Messages (You have to manual rework):");
+            logMessages.ForEach(Console.WriteLine);
+            Console.WriteLine("Search in open and closed Issues for >Image< and edit to upload images manually.");
+            Console.WriteLine();
 
             Console.WriteLine("Migration finshed.");
             Console.WriteLine($"GitLab: {sourceProject.WebUrl}");
@@ -65,7 +70,7 @@ namespace GitLabToGitHub
         {
             var privatePublic = targetPrivate ? "private" : "public";
             Console.Write($"Migrate >{sourceProjectName}< from GitLab to new {privatePublic} Project >{targetRepositoryName}< on GitHub? [Y/n]");
-            var allowedKeys = new[] {ConsoleKey.Y, ConsoleKey.N};
+            var allowedKeys = new[] {ConsoleKey.Y, ConsoleKey.N, ConsoleKey.Enter};
             ConsoleKeyInfo userInputKeyInfo;
             do
             {
@@ -73,7 +78,7 @@ namespace GitLabToGitHub
             } while (!allowedKeys.Contains(userInputKeyInfo.Key));
             Console.WriteLine(string.Empty);
 
-            return userInputKeyInfo.Key == ConsoleKey.Y;
+            return userInputKeyInfo.Key != ConsoleKey.N;
         }
     }
 }

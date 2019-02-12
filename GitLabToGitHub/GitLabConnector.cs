@@ -100,6 +100,16 @@ namespace GitLabToGitHub
         public string CloneProjectRepository(Project project, string gitRepoPath)
         {
             gitRepoPath = Path.Combine(gitRepoPath, project.Path);
+            if (Directory.Exists(gitRepoPath))
+            {
+                var files = Directory.GetFiles(gitRepoPath, "*.*", SearchOption.AllDirectories);
+                foreach (var file in files)
+                {
+                    File.SetAttributes(file, FileAttributes.Normal);
+                }
+                Directory.Delete(gitRepoPath, true);
+            }
+
             using (var repo = new Repository(Repository.Init(gitRepoPath, true)))
             {
                 if (repo.Network.Remotes.Any(r => r.Name == "gitlab"))
