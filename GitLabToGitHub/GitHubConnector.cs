@@ -38,14 +38,14 @@ namespace GitLabToGitHub
             repositoryName = string.IsNullOrEmpty(userInput) ? repositoryName : userInput;
             var newRepository = new NewRepository(repositoryName);
 
-            Console.Write($"Should Repository {repositoryName} be Private or Public [R/u]?");
-            var allowedKeys = new[] { ConsoleKey.R, ConsoleKey.U, ConsoleKey.Enter };
+            Console.Write($"Should Repository {repositoryName} be Private? [Y/n]");
+            var allowedKeys = new[] { ConsoleKey.Y, ConsoleKey.N, ConsoleKey.Enter };
             ConsoleKeyInfo userInputKeyInfo;
             do
             {
                 userInputKeyInfo = Console.ReadKey(false);
             } while (!allowedKeys.Contains(userInputKeyInfo.Key));
-            newRepository.Private = userInputKeyInfo.Key != ConsoleKey.U;
+            newRepository.Private = userInputKeyInfo.Key != ConsoleKey.N;
             Console.WriteLine(string.Empty);
 
             return newRepository;
