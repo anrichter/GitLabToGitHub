@@ -46,17 +46,20 @@ namespace GitLabToGitHub
             await _gitHubConnector.CreateCollaborators(targetRepository, users, logMessages);
             Console.WriteLine("Done.");
 
-            Console.Write("Migrate Milestones... ");
-            var milestones = await _gitLabConnector.GetMilestones(sourceProject);
-            Console.Write($"\rMigrate {milestones.Count} Milestones... ");
-            milestones = await _gitHubConnector.CreateMilestones(targetRepository, milestones);
-            Console.WriteLine("Done.");
+            if (sourceProject.IssuesEnabled)
+            {
+                Console.Write("Migrate Milestones... ");
+                var milestones = await _gitLabConnector.GetMilestones(sourceProject);
+                Console.Write($"\rMigrate {milestones.Count} Milestones... ");
+                milestones = await _gitHubConnector.CreateMilestones(targetRepository, milestones);
+                Console.WriteLine("Done.");
 
-            Console.Write("Migrate Issues... ");
-            var issues = await _gitLabConnector.GetIssues(sourceProject);
-            Console.Write($"\rMigrate {issues.Count} Issues... ");
-            await _gitHubConnector.CreateIssues(targetRepository, issues, milestones, logMessages);
-            Console.WriteLine("Done.");
+                Console.Write("Migrate Issues... ");
+                var issues = await _gitLabConnector.GetIssues(sourceProject);
+                Console.Write($"\rMigrate {issues.Count} Issues... ");
+                await _gitHubConnector.CreateIssues(targetRepository, issues, milestones, logMessages);
+                Console.WriteLine("Done.");
+            }
 
             Console.WriteLine($"{Environment.NewLine}Log Messages (You have to manual rework):");
             Console.Write(logMessages.ToString());
