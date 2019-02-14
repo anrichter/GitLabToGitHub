@@ -179,8 +179,10 @@ namespace GitLabToGitHub
                     {
                         Id = issueNote.Id,
                         CreatedDate = issueNote.CreatedAt,
+                        AuthorName = issueNote.Author.Name,
                         AuthorUsername = issueNote.Author.Username,
-                        Body = issueNote.Body
+                        Body = issueNote.Body,
+                        System = issueNote.System
                     });
                 }
 

@@ -139,6 +139,11 @@ namespace GitLabToGitHub
 
                 var createdIssue = await _gitHubClient.Issue.Create(repository.Id, newIssue);
 
+                foreach (var comment in issue.Comments.Where(c => !c.System).OrderBy(c => c.Id))
+                {
+                    await _gitHubClient.Issue.Comment.Create(repository.Id, createdIssue.Number, ComposeBody(comment));
+                }
+
                 if (issue.Closed)
                 {
                     var issueUpdate = createdIssue.ToUpdate();
@@ -150,25 +155,34 @@ namespace GitLabToGitHub
             }
 
             return logMessages;
+        }
 
-            string ComposeBody(TransferObjects.Issue issue, List<string> issueAssignees)
+        private string ComposeBody(TransferObjects.Issue issue, List<string> issueAssignees)
+        {
+            var body = issue.Description;
+            body += $"{Environment.NewLine}{Environment.NewLine}";
+            body += $"**Imported from GitLab**{Environment.NewLine}";
+            body += $"Created from {_userMapper.MapToGitHubUserName(issue.AuthorUserName)} at {issue.CreatedAt:u}{Environment.NewLine}";
+            if (issueAssignees.Any())
             {
-                var body = issue.Description;
-                body += $"{Environment.NewLine}{Environment.NewLine}";
-                body += $"**Imported from GitLab**{Environment.NewLine}";
-                body += $"Created from {_userMapper.MapToGitHubUserName(issue.AuthorUserName)} on {issue.CreatedAt:u}{Environment.NewLine}";
-                if (issueAssignees.Any())
-                {
-                    body += $"Assignees: {string.Join(", ", issueAssignees)}{Environment.NewLine}";
-                }
-                body += $"*Comments:*{Environment.NewLine}";
-                foreach (var comment in issue.Comments.OrderBy(c => c.Id))
-                {
-                    body += $"{Environment.NewLine}*{_userMapper.MapToGitHubUserName(comment.AuthorUsername)} on {comment.CreatedDate:u}*:{Environment.NewLine}{comment.Body}{Environment.NewLine}";
-                }
-
-                return body;
+                body += $"Assigned to {string.Join(", ", issueAssignees)}{Environment.NewLine}";
             }
+
+            body += $"{Environment.NewLine}*Issue History:*{Environment.NewLine}";
+            foreach (var comment in issue.Comments.Where(c => c.System).OrderBy(c => c.Id))
+            {
+                body += $"* {comment.AuthorName} @{comment.AuthorUsername} {comment.Body} at {comment.CreatedDate:u}{Environment.NewLine}";
+            }
+            return body;
+        }
+
+        private string ComposeBody(TransferObjects.Comment comment)
+        {
+            var body = comment.Body;
+            body += $"{Environment.NewLine}{Environment.NewLine}";
+            body += $"**Imported from GitLab**{Environment.NewLine}";
+            body += $"Created from {_userMapper.MapToGitHubUserName(comment.AuthorUsername)} on {comment.CreatedDate:u}";
+            return body;
         }
     }
 }
