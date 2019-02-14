@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using GitLabToGitHub.Settings;
@@ -81,17 +82,24 @@ namespace GitLabToGitHub
             }
         }
 
-        public async Task CreateCollaborators(Repository repository, ICollection<string> usernames)
+        public async Task CreateCollaborators(Repository repository, ICollection<string> usernames, StringBuilder logMessages)
         {
             var existingCollaborators = await _gitHubClient.Repository.Collaborator.GetAll(repository.Id);
             var existingCollaboratorUsernames = existingCollaborators.Select(c => c.Login).ToList();
 
             var neededCollaboratorUsernames = usernames.Select(user => _userMapper.MapToGitHubUserName(user)).ToList();
             var newCollaboratorUsernames = neededCollaboratorUsernames.Except(existingCollaboratorUsernames);
-            
+        
             foreach (var newCollaboratorUsername in newCollaboratorUsernames)
             {
-                await _gitHubClient.Repository.Collaborator.Add(repository.Id, newCollaboratorUsername);
+                try
+                {
+                    await _gitHubClient.Repository.Collaborator.Add(repository.Id, newCollaboratorUsername);
+                }
+                catch (Exception)
+                {
+                    logMessages.AppendLine($"Cannot create User >{newCollaboratorUsername}>. Maybe it does not exists in User Mappings or on GitHub.");
+                }
             }
         }
 
@@ -112,9 +120,8 @@ namespace GitLabToGitHub
             return milestones;
         }
 
-        public async Task<List<string>> CreateIssues(Repository repository, ICollection<TransferObjects.Issue> issues, ICollection<TransferObjects.Milestone> milestones)
+        public async Task CreateIssues(Repository repository, ICollection<TransferObjects.Issue> issues, ICollection<TransferObjects.Milestone> milestones, StringBuilder logMessages)
         {
-            var logMessages = new List<string>();
             var sortedIssues = issues.OrderBy(i => i.Id);
             foreach (var issue in sortedIssues)
             {
@@ -151,10 +158,8 @@ namespace GitLabToGitHub
                     await _gitHubClient.Issue.Update(repository.Id, createdIssue.Number, issueUpdate);
                 }
 
-                issueAssignees.ForEach(username => logMessages.Add($"User >{username}< not automatically assigned to Issue >{createdIssue.HtmlUrl}<"));
+                issueAssignees.ForEach(username => logMessages.AppendLine($"User >{username}< not automatically assigned to Issue >{createdIssue.HtmlUrl}<"));
             }
-
-            return logMessages;
         }
 
         private string ComposeBody(TransferObjects.Issue issue, List<string> issueAssignees)

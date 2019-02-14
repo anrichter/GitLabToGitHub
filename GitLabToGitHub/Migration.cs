@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace GitLabToGitHub
@@ -18,6 +19,7 @@ namespace GitLabToGitHub
 
         public async Task MigrateOneProject()
         {
+            var logMessages = new StringBuilder();
             Console.WriteLine("Migrate a GitLab project to a new GitHub repository.");
 
             var sourceProject = await _gitLabConnector.GetSourceProject();
@@ -41,7 +43,7 @@ namespace GitLabToGitHub
             Console.Write("Migrate Users... ");
             var users = await _gitLabConnector.GetUsernames(sourceProject);
             Console.Write($"\rMigrate {users.Count} Users... ");
-            await _gitHubConnector.CreateCollaborators(targetRepository, users);
+            await _gitHubConnector.CreateCollaborators(targetRepository, users, logMessages);
             Console.WriteLine("Done.");
 
             Console.Write("Migrate Milestones... ");
@@ -53,11 +55,11 @@ namespace GitLabToGitHub
             Console.Write("Migrate Issues... ");
             var issues = await _gitLabConnector.GetIssues(sourceProject);
             Console.Write($"\rMigrate {issues.Count} Issues... ");
-            var logMessages = await _gitHubConnector.CreateIssues(targetRepository, issues, milestones);
+            await _gitHubConnector.CreateIssues(targetRepository, issues, milestones, logMessages);
             Console.WriteLine("Done.");
 
             Console.WriteLine($"{Environment.NewLine}Log Messages (You have to manual rework):");
-            logMessages.ForEach(Console.WriteLine);
+            Console.Write(logMessages.ToString());
             Console.WriteLine("Search in open and closed Issues for >Image< and edit to upload images manually.");
             Console.WriteLine();
 
