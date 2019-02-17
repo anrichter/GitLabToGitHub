@@ -28,16 +28,18 @@ namespace GitLabToGitHub
             };
         }
 
-        public NewRepository GetNewRepository(string sourceGroupName, string sourceProjectName)
+        public NewRepository GetNewRepository(string sourceGroupName, string sourceProjectName, string description)
         {
             sourceGroupName = Regex.Replace(sourceGroupName, @"\s+", string.Empty);
             sourceProjectName = Regex.Replace(sourceProjectName, @"\s+", string.Empty);
+            description = RemoveControlChars(description);
             var repositoryName = $"{sourceGroupName}_{sourceProjectName}";
 
             Console.WriteLine($"New GitHub Repository name [{repositoryName}]: ");
             var userInput = Console.ReadLine();
             repositoryName = string.IsNullOrEmpty(userInput) ? repositoryName : userInput;
             var newRepository = new NewRepository(repositoryName);
+            newRepository.Description = description;
 
             Console.Write($"Should Repository {repositoryName} be Private? [Y/n]");
             var allowedKeys = new[] { ConsoleKey.Y, ConsoleKey.N, ConsoleKey.Enter };
@@ -160,6 +162,16 @@ namespace GitLabToGitHub
 
                 issueAssignees.ForEach(username => logMessages.AppendLine($"User >{username}< not automatically assigned to Issue >{createdIssue.HtmlUrl}<"));
             }
+        }
+
+        private string RemoveControlChars(string description)
+        {
+            if (string.IsNullOrEmpty(description))
+            {
+                return description;
+            }
+
+            return string.Concat(description.AsEnumerable().Where(c => !char.IsControl(c)));
         }
 
         private string ComposeBody(TransferObjects.Issue issue, List<string> issueAssignees)

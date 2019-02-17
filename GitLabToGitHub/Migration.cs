@@ -23,7 +23,7 @@ namespace GitLabToGitHub
             Console.WriteLine("Migrate a GitLab project to a new GitHub repository.");
 
             var sourceProject = await _gitLabConnector.GetSourceProject();
-            var targetNewRepository = _gitHubConnector.GetNewRepository(sourceProject.Namespace.Name, sourceProject.Name);
+            var targetNewRepository = _gitHubConnector.GetNewRepository(sourceProject.Namespace.Name, sourceProject.Name, sourceProject.Description);
 
             if (!SelectStartMigration(sourceProject.NameWithNamespace, targetNewRepository.Name, targetNewRepository.Private ?? false))
             {
