@@ -262,3 +262,6 @@ __pycache__/
 
 # Production Settings
 *.production.json
+
+# Ignore temporary git clones
+GitClones/
