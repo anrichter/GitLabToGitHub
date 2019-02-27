@@ -18,6 +18,8 @@ namespace GitLabToGitHub
         private readonly GitLabSettings _gitLabSettings;
         private readonly GitLabClient _gitLabClient;
 
+        private const int FakeGroupIdForAllProjects = 0;
+
         public GitLabConnector(GitLabSettings gitLabSettings)
         {
             _gitLabSettings = gitLabSettings;
@@ -29,8 +31,9 @@ namespace GitLabToGitHub
             try
             {
                 var availableSourceGroups = await _gitLabClient.Groups.GetAsync();
+                AddFakeGroupToListAllProjects(availableSourceGroups);
                 var sourceGroup = SelectGitLabGroup(availableSourceGroups);
-                var availableProjectsInSourceGroup = await _gitLabClient.Groups.GetProjectsAsync(sourceGroup.Id.ToString());
+                var availableProjectsInSourceGroup = await GetProjectsForGroup(sourceGroup);
                 var sourceProject = SelectGitLabProject(availableProjectsInSourceGroup);
                 return sourceProject;
             }
@@ -40,6 +43,12 @@ namespace GitLabToGitHub
                 Console.WriteLine("Please check your GitLab Settings.");
                 Environment.Exit(1);
                 throw;
+            }
+
+            void AddFakeGroupToListAllProjects(IList<Group> availableSourceGroups)
+            {
+                var fakeGroup = new Group { Id = FakeGroupIdForAllProjects, Name = "All Projects" };
+                availableSourceGroups.Add(fakeGroup);
             }
 
             Group SelectGitLabGroup(IList<Group> gitLabGroups)
@@ -67,6 +76,15 @@ namespace GitLabToGitHub
                 }
 
                 return selectedGroup;
+            }
+
+            async Task<IList<Project>> GetProjectsForGroup(Group group)
+            {
+                if (group.Id == FakeGroupIdForAllProjects)
+                {
+                    return await _gitLabClient.Projects.GetAsync();
+                }
+                return await _gitLabClient.Groups.GetProjectsAsync(group.Id.ToString());
             }
 
             Project SelectGitLabProject(IList<Project> gitLabProjects)
