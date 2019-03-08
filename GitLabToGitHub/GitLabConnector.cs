@@ -82,7 +82,8 @@ namespace GitLabToGitHub
             {
                 if (group.Id == FakeGroupIdForAllProjects)
                 {
-                    return await _gitLabClient.Projects.GetAsync();
+                    var projects = await _gitLabClient.Projects.GetAsync();
+                    return projects.Where(p => !p.Archived).ToList();
                 }
                 return await _gitLabClient.Groups.GetProjectsAsync(group.Id.ToString());
             }
