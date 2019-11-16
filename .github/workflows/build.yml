@@ -9,12 +9,12 @@ on:
 
 jobs:
   build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         dotnet: ['2.2.103', '3.0.100']
 
-    runs-on: ${{ matrix.os }}
     steps:
       - name: Get the sources
         uses: actions/checkout@v1
