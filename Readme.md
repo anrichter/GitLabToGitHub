@@ -4,6 +4,8 @@ Easy to use Command Line Tool to migrate GitLab Projects to GitHub Repositories.
 
 Select a GitLab Group and a Project, give a name for the new Repository, decide if it is a Private one and let the tool do their work.
 
+![](https://github.com/anrichter/GitLabToGitHub/workflows/Build/badge.svg)
+
 ## Features
 
 * Browse GitLab Groups / Projects
