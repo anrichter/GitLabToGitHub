@@ -5,10 +5,12 @@ on: [push, pull_request]
 
 jobs:
   build:
+    name: Build on 
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
+        dotnet: ['2.2.103', '3.0.100' ]
 
     steps:
       - name: Get the sources
