@@ -1,19 +1,11 @@
 name: Build
 
-on:
-  pull_request:
-  push:
-    branches: 
-      - main
-      - develop
+on: [push, pull_request]
+
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        dotnet: ['2.2.103', '3.0.100']
+    runs-on: windows-latest
 
     steps:
       - name: Get the sources
@@ -22,7 +14,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: ${{ matrix.dotnet }}
+          dotnet-version: '3.0.100'
             
       - name: Build with dotnet
         run: dotnet build --configuration Release
