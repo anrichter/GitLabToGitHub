@@ -10,7 +10,6 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-        dotnet: ['2.2.103', '3.0.100' ]
 
     steps:
       - name: Get the sources

@@ -26,7 +26,7 @@ Select a GitLab Group and a Project, give a name for the new Repository, decide 
 
 ## How to use 
 
-* Install .NET Core 2.2 SDK
+* Install .NET Core 3.0.100 SDK
 * Create a GitLab Access Token with Scope **api**
 * Create a GitHub Access Token with Scope **repo**
 * Clone the Repository
