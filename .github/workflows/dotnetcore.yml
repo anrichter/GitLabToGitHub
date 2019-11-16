@@ -1,0 +1,28 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches: 
+      - main
+      - develop
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        dotnet: ['2.2.103', '3.0.100']
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Get the sources
+        uses: actions/checkout@v1
+    
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+            
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
